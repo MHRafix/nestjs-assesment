@@ -44,6 +44,7 @@ export class AuthService {
     user.name = payload.name;
     user.email = payload.email;
     user.password = hashedPass;
+    user.role = payload?.role;
 
     // save to db
     const createdUser = await this.userModel.save(user);
@@ -51,6 +52,7 @@ export class AuthService {
     // create token and return
     const token = this.jwtService.sign({
       email: createdUser?.email,
+      role: createdUser?.role,
     });
 
     return { token };
@@ -83,6 +85,7 @@ export class AuthService {
     // make token and return
     const token = this.jwtService.sign({
       email: isUserExist?.email,
+      role: isUserExist?.role,
     });
 
     return { token };

@@ -18,6 +18,7 @@
 // export const UserSchema = SchemaFactory.createForClass(UserEntity);
 
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { UserRole } from '../dto/signup.dto';
 
 @Entity()
 export class UserEntity {
@@ -32,6 +33,9 @@ export class UserEntity {
 
   @Column({ type: 'varchar', length: 40 })
   email: string;
+
+  @Column({ type: 'enum', enum: UserRole, default: UserRole.ADMIN })
+  role: UserRole;
 
   @Column({ type: 'varchar' })
   password: string;
