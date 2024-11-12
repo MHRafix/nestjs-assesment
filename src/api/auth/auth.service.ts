@@ -1,21 +1,21 @@
+import { JwtService } from '@nestjs/jwt';
 import {
   BadRequestException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { InjectModel } from '@nestjs/mongoose';
 import * as bcrypt from 'bcryptjs';
-import { Model } from 'mongoose';
-import { UserEntity, UserDocument } from './entities/user.entity';
+import { UserEntity } from './entities/user.entity';
 import { SignUpDto } from './dto/signup.dto';
 import { SignInDto } from './dto/signin.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class AuthService {
   constructor(
-    @InjectModel(UserEntity.name)
-    private userModel: Model<UserDocument>,
+    @InjectRepository(UserEntity)
+    private userModel: Repository<UserEntity>, // private jwtService: JwtService,
     private jwtService: JwtService,
   ) {}
 
@@ -24,30 +24,33 @@ export class AuthService {
    * @param payload signup payload
    * @returns
    */
-  async signUp(payload: SignUpDto): Promise<{ token: string }> {
-    const { name, email, password } = payload;
-    const hashedPass = await bcrypt.hash(password, 10);
+
+  async signUp(payload: SignUpDto): Promise<{ token }> {
+    const { email, password } = payload; // destructure payload
+    const hashedPass = await bcrypt.hash(password, 10); // password hash by bcrypt
 
     // if user exist with the given email
-    const isUserExist = await this.userModel.findOne({ email });
+    const isUserExist = await this.userModel.findOneBy({ email });
 
+    // throw en exception
     if (isUserExist) {
       throw new BadRequestException(
         'This Email Already Used try with another email!',
       );
     }
 
-    // create new user
-    const user = await this.userModel.create({
-      name,
-      email,
-      password: hashedPass,
-    });
+    // user object
+    const user: UserEntity = new UserEntity();
+    user.name = payload.name;
+    user.email = payload.email;
+    user.password = hashedPass;
 
-    // make token with and return
+    // save to db
+    const createdUser = await this.userModel.save(user);
+
+    // create token and return
     const token = this.jwtService.sign({
-      id: user._id,
-      email: user?.email,
+      email: createdUser?.email,
     });
 
     return { token };
@@ -62,24 +65,23 @@ export class AuthService {
     const { email, password } = payload;
 
     // check is user exist
-    const isUserExist = await this.userModel.findOne({ email });
+    const isUserExist = await this.userModel.findOneBy({ email });
 
     // if user is not exist
     if (!isUserExist) {
-      throw new UnauthorizedException('Email is not correct!');
+      throw new UnauthorizedException('Incorrect credential!');
     }
 
     // check is password matched
-    const isMatchedPass = bcrypt.compare(password, isUserExist.password);
+    const isMatchedPass = bcrypt.compare(password, isUserExist?.password);
 
     // if password is incorrect
     if (!isMatchedPass) {
-      throw new UnauthorizedException('You entered wrong password!');
+      throw new UnauthorizedException('Incorrect credential!');
     }
 
     // make token and return
     const token = this.jwtService.sign({
-      id: isUserExist._id,
       email: isUserExist?.email,
     });
 

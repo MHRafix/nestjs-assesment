@@ -3,25 +3,33 @@ import {
   IsEmail,
   IsNotEmpty,
   IsString,
-  MaxLength,
+  Matches,
   MinLength,
 } from 'class-validator';
 
+const passwordRegEx =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*d)(?=.*[@$!%*?&])[A-Za-zd@$!%*?&]{8,20}$/;
+
 export class SignUpDto {
   @ApiProperty({ required: true })
-  @IsNotEmpty()
   @IsString()
+  @MinLength(2, { message: 'Name must have atleast 2 characters.' })
+  @IsNotEmpty()
   name: string;
 
   @ApiProperty({ required: true })
   @IsNotEmpty()
-  @IsEmail({}, { message: 'Please type a valid email!' })
+  @IsEmail()
   email: string;
 
   @ApiProperty({ required: true })
   @IsNotEmpty()
-  @IsString()
-  @MinLength(6, { message: 'Password should have atleast 6 letters!' })
-  @MaxLength(20, { message: 'Password should have less than 20 letters!' })
+  @Matches(passwordRegEx, {
+    message: `Password must contain Minimum 8 and maximum 20 characters,
+    at least one uppercase letter,
+    one lowercase letter,
+    one number and
+    one special character`,
+  })
   password: string;
 }
